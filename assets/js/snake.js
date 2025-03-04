@@ -56,3 +56,36 @@ function createBody(bodyNumber) {
 function scale(element) {
     element.setScale(0.45);
 }
+
+// function followTurnPoints(index, part) {
+//     for (let i = 0; i < turnPoints.length; i++) {
+//         let turn = turnPoints[i];
+//
+//         let moveX = part.body.x;
+//         let moveY = part.body.y;
+//
+//         switch (part.direction) {
+//             case 0:
+//                 moveY -= 32;
+//                 break;
+//             case 1:
+//                 moveX -= 32;
+//                 break;
+//             case 2:
+//                 moveY += 32;
+//                 break;
+//             case 3:
+//                 moveX += 32;
+//                 break;
+//         }
+//
+//         if (turn.direction % 2 !== 0 && moveX === turn.x || turn.direction % 2 === 0 && moveY === turn.y) {
+//             part.direction = turn.direction;
+//
+//             if (index === snake.length - 1) {
+//                 turnPoints.splice(i, 1);
+//                 targetDirection = -1;
+//             }
+//         }
+//     }
+// }

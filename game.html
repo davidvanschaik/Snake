@@ -25,15 +25,18 @@
     };
 
     let game = new Phaser.Game(config);
+    let cursors;
+    let scene;
     let score = 0;
     let scoreText;
-    let scene;
-    let cursors;
-    var speed = 2;
+    let gameOverTextRed;
+    let gameOverTextBlack;
+
+    let speed = 1;
     let targetDirection = -1;
     let turnPoints = [];
     let apple;
-    let didEatApple = false;
+    let appleIsActive = true;
     let snake = [
         {body: '', direction: 1, frozen: false},
     ];
@@ -42,12 +45,19 @@
         this.load.image('food', 'assets/images/food.png');
         this.load.spritesheet('head', 'assets/images/head.png', {frameWidth: 75, frameHeight: 75});
         this.load.spritesheet('body', 'assets/images/body.png', {frameWidth: 75, frameHeight: 75});
+
+        this.load.spritesheet('head_game_over', 'assets/images/head_go.png', {frameWidth: 75, frameHeight: 75});
+        this.load.spritesheet('body_game_over', 'assets/images/body_go.png', {frameWidth: 75, frameHeight: 75});
+        this.load.image('food_game_over', 'assets/images/food_go.png');
     }
 
     function create() {
         scene = this;
         cursors = this.input.keyboard.createCursorKeys();
-        scoreText = this.add.text(16, 16, 'score: 0', { fontsize: '100px', fill: '#000' });
+        scoreText = this.add.text(10, 10, 'Score: 0', { fontSize: '30px', fill: '#070000' });
+        scoreText.setDepth(1);
+        gameOverTextBlack = this.add.text(175, 350, 'Game Over', { fontSize: '75px', fill: '#070707'});
+        gameOverTextRed = this.add.text(180, 350, 'Game Over', { fontSize: '75px', fill: '#ee0404'});
 
         createBackground();
         createSnake();
@@ -84,29 +94,68 @@
     }
 
     function spawnApple() {
-        let x = (Math.floor((Math.random() * 10) + 1) * 32) - 16;
-        let y = (Math.floor((Math.random() * 20) + 1) * 32) - 16;
+        let minX = 2, maxX = 24; // X range (in grid units)
+        let minY = 2, maxY = 24; // Y range (in grid units)
+
+        let x = (Math.floor(Math.random() * (maxX - minX + 1)) + minX) * 32 - 16;
+        let y = (Math.floor(Math.random() * (maxY - minY + 1)) + minY) * 32 - 16;
 
         apple = scene.add.image(x, y, 'food');
         apple.setScale(0.45);
     }
 
     function update() {
-        eatApple()
-        borderCollision()
+        borderCollision();
+        collideWithSelf();
         getDirection();
         move();
-        // fixGrid();
+        eatApple();
+    }
+
+    function gameOver() {
+        speed = 0;
+        changeImageColors();
+        gameOverTextBlack.setDepth(1);
+        gameOverTextRed.setDepth(1);
+    }
+
+    function changeImageColors() {
+        snake.forEach((part, index) => {
+            if (index === 0) {
+                part.body = scene.add.sprite(part.body.x, part.body.y, 'head_game_over', part.direction);
+                snake[index].body.setScale(0.425);
+            } else {
+                part.body = scene.add.sprite(part.body.x, part.body.y, 'body_game_over', 1);
+                snake[index].body.setScale(0.40);
+            }
+        });
+        let appleInfo = apple;
+        apple.destroy();
+        apple = scene.add.image(appleInfo.x, appleInfo.y, 'food_game_over');
+        apple.setScale(0.45);
+
     }
 
     function borderCollision() {
         [snake[0].body.x, snake[0].body.y].forEach((pos) => {
-            if (pos < 15 || pos > 785) {
-                speed = 0;
-                return false;
+            if (pos < 17 || pos > 783) {
+                gameOver();
             }
         });
-        collideWithSelf();
+    }
+
+    function collideWithSelf() {
+        snake.forEach((part, index) => {
+            if (index !== 0) {
+                if (getDistance(snake[0].body, part.body) < 16) {
+                    gameOver();
+                }
+            }
+        });
+    }
+
+    function getDistance(body1, body2) {
+        return Phaser.Math.Distance.Between(body1.x, body1.y, body2.x, body2.y);
     }
 
     function getDirection() {
@@ -117,9 +166,7 @@
             if (cursors.right.isDown) {
                 targetDirection = 2;
             }
-        }
-
-        if (snake[0].direction % 2 === 0) {
+        } else {
             if (cursors.up.isDown) {
                 targetDirection = 1;
             } else if (cursors.down.isDown) {
@@ -131,160 +178,134 @@
     function move() {
         snake.forEach((part, index) => {
             if (index === 0) {
-                let alignedX = ((part.body.x + 16) % 32 === 0);
-                let alignedY = ((part.body.y + 16) % 32 === 0);
-
-                if (targetDirection !== -1 && targetDirection !== part.direction && (alignedX && alignedY)) {
-                    makeTurn(index);
-                }
+                turnHead(part);
             } else {
                 if (part.frozen) {
-                    moveNewBody(index, part);
+                    moveNewBody(part, index);
                 }
+                followTurnPoints(part, index);
             }
-
-            if (!part.frozen) {
+            if (! part.frozen) {
                 addSpeed(part);
             }
-            followTurnPoints(index, part);
         });
     }
 
+    function turnHead(part) {
+        let alignX = (part.body.x + 16) % 32;
+        let alignY = (part.body.y + 16) % 32;
 
-    function makeTurn(index) {
-        if (index === 0) {
-            turnPoints.push({
-                x: snake[index].body.x,
-                y: snake[index].body.y,
-                direction: targetDirection
-            });
-        }
-        snake[index].direction = targetDirection;
-        turn(targetDirection, index);
-    }
-
-    function moveNewBody(index, part) {
-        let previous = snake[index - 1];
-        let distance = Phaser.Math.Distance.Between(previous.body.x, previous.body.y, part.body.x, part.body.y);
-
-        let alignedX = (part.body.x % 32 === 0);
-        let alignedY = (part.body.y % 32 === 0);
-
-        // If the previous segment turned, unfreeze when aligned
-        if (part.direction !== previous.direction) {
-            if (previous.direction % 2 === 0) { // Horizontal movement
-                if (alignedX && distance < 16) {
-                    part.frozen = false;
+        if (targetDirection !== -1 && targetDirection !== part.direction) {
+            if (speed === 1) {
+                if (alignX === 0 && alignY === 0 && speed === 1) {
+                    makeTurn(part);
                 }
-            } else { // Vertical movement
-                if (alignedY && distance < 16) {
-                    part.frozen = false;
+            } else {
+                if (targetDirection % 2 !== 0 && alignX < speed && alignY === 0) {
+                    part.body.x -= alignX;
+                    makeTurn(part);
                 }
-            }
-        } else {
-            // Only unfreeze when it's a full grid step behind
-            if (distance >= 32) {
-                part.frozen = false;
+                if (targetDirection % 2 === 0 && alignX === 0 && alignY < speed) {
+                    part.body.y -= alignY;
+                    makeTurn(part);
+                }
             }
         }
     }
 
-
-
-
-    function turn(dir, index) {
-        snake[index].body.setFrame(dir);
+    function makeTurn(part) {
+        turnPoints.push({
+            x: part.body.x,
+            y: part.body.y,
+            direction: targetDirection
+        });
+        part.direction = targetDirection;
+        part.body.setFrame(targetDirection);
     }
 
-    function followTurnPoints(index, part) {
+    function moveNewBody(part, index) {
+        let prevPart = snake[index -1];
+        let distance = getDistance(part.body, prevPart.body);
+
+        if (distance > 23 && part.direction !== prevPart.direction) {
+            if (part.direction % 2 === 0) {
+                part.body.x = Math.round(part.body.x / 16) * 16;
+            }
+            if (part.direction % 2 !== 0) {
+                part.body.y = Math.round(part.body.y / 16) * 16;
+            }
+            part.frozen = false;
+        } else if (distance > 32) {
+            part.frozen = false;
+        }
+        alignBody(part, prevPart);
+    }
+
+    function alignBody(part, prevPart) {
+        let distanceX = Math.abs(part.body.x - prevPart.body.x);
+        let distanceY = Math.abs(part.body.y - prevPart.body.y);
+
+        console.log(`part x: ${part.body.x}, prevPart x: ${prevPart.body.x} distance: ${distanceX}`);
+        console.log(`part y: ${part.body.y}, prevPart y: ${prevPart.body.y} distance: ${distanceY}`);
+    }
+
+
+    function followTurnPoints(part, index) {
         for (let i = 0; i < turnPoints.length; i++) {
             let turn = turnPoints[i];
 
-            // If the body segment is close enough, snap it to the turn point
-            let distance = Phaser.Math.Distance.Between(turn.x, turn.y, part.body.x, part.body.y);
-            if (distance < speed) {
+            if (getDistance(part.body, turn) < speed) {
                 part.body.x = turn.x;
                 part.body.y = turn.y;
                 part.direction = turn.direction;
 
-                snake[index].body.x = Phaser.Math.Snap.To(snake[index].body.x, 16);
-                snake[index].body.y = Phaser.Math.Snap.To(snake[index].body.y, 16);
-
-                // Remove turn point only after last segment has turned
                 if (index === snake.length - 1) {
                     turnPoints.splice(i, 1);
                     targetDirection = -1;
                 }
-                break; // Stop checking further turns
             }
         }
     }
-
 
     function addSpeed(part) {
-        if (!part.frozen) {
-            switch (part.direction) {
-                case 0: // Left
-                    part.body.x -= speed;
-                    break;
-                case 1: // Up
-                    part.body.y -= speed;
-                    break;
-                case 2: // Right
-                    part.body.x += speed;
-                    break;
-                case 3: // Down
-                    part.body.y += speed;
-                    break;
-            }
+        let moveDistance = speed; // Ensure all parts move at the same speed
+
+        if (part.direction % 2 === 0) {
+            part.body.x += (part.direction === 0 ? -moveDistance : +moveDistance);
+        } else {
+            part.body.y += (part.direction === 1 ? -moveDistance : +moveDistance);
         }
     }
 
-
     function eatApple() {
-        if (Phaser.Math.Distance.Between(snake[0].body.x, snake[0].body.y, apple.x, apple.y) < 16) {
+        let distance = getDistance(snake[0].body, apple);
+        let lastBody = snake[snake.length -1];
+
+        if (distance < 32 && appleIsActive) {
+            createBody(lastBody, lastBody.body.x, lastBody.body.y, true);
+            appleIsActive = false;
+        }
+        if (distance < 16 && ! appleIsActive) {
             apple.destroy();
-            spawnApple();
-
-            snake[0].body.x = Phaser.Math.Snap.To(snake[0].body.x, 16);
-            snake[0].body.y = Phaser.Math.Snap.To(snake[0].body.y, 16);
-
-            createBody(snake[snake.length - 1], snake[snake.length - 1].body.x, snake[snake.length - 1].body.y, true);
             addScore();
+            spawnApple();
+            appleIsActive = true;
         }
     }
 
     function addScore() {
         score += 10;
-        scoreText.setText('score: ' + score);
-        // increaseSpeed();
+        scoreText.setText(`Score: ${score}`);
+        increaseSpeed();
     }
 
     function increaseSpeed() {
         if (score > 10 && speed === 1) {
             speed += 1;
-            console.log(snake[0].body);
         } else if (score > 50 && speed === 2) {
             speed += 2;
         }
     }
-
-    function collideWithSelf() {
-        snake.forEach((part, index) => {
-            if (index !== 0) {
-                if (Phaser.Math.Distance.Between(snake[0].body.x, snake[0].body.y, part.body.x, part.body.y) < 16) {
-                    speed = 0;
-                }
-            }
-        });
-    }
-
-    // function fixGrid() {
-    //     for (let x = 0; x < snake.length; x++) {
-    //         snake[x].body.x = Phaser.Math.Snap.To((snake[x].body.x + 16), 32);
-    //         snake[x].body.y = Phaser.Math.Snap.To((snake[x].body.y + 16), 32);
-    //     }
-    // }
 
 </script>
 </body>

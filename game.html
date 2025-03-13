@@ -32,7 +32,7 @@
     let gameOverTextRed;
     let gameOverTextBlack;
 
-    let speed = 1;
+    let speed = 2;
     let targetDirection = -1;
     let turnPoints = [];
     let apple;
@@ -228,15 +228,15 @@
         let distance = getDistance(part.body, prevPart.body);
 
         if (distance > 23 && part.direction !== prevPart.direction) {
-            if (part.direction % 2 === 0) {
-                part.body.x = Math.round(part.body.x / 16) * 16;
-            }
-            if (part.direction % 2 !== 0) {
-                part.body.y = Math.round(part.body.y / 16) * 16;
-            }
             part.frozen = false;
         } else if (distance > 32) {
             part.frozen = false;
+        }
+        if (part.direction % 2 === 0) {
+            part.body.x = Math.round(part.body.x / 16) * 16;
+        }
+        if (part.direction % 2 !== 0) {
+            part.body.y = Math.round(part.body.y / 16) * 16;
         }
         alignBody(part, prevPart);
     }

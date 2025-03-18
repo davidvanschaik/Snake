@@ -33,6 +33,8 @@
     let gameOverTextBlack;
 
     let speed = 2;
+    let newSpeed;
+
     let targetDirection = -1;
     let turnPoints = [];
     let apple;
@@ -62,6 +64,7 @@
         createBackground();
         createSnake();
         spawnApple();
+        newSpeed = speed;
     }
 
     function createSnake() {
@@ -105,15 +108,19 @@
     }
 
     function update() {
-        borderCollision();
-        collideWithSelf();
-        getDirection();
-        move();
-        eatApple();
+        if (speed !== 0) {
+            borderCollision();
+            collideWithSelf();
+            getDirection();
+            move();
+            eatApple();
+            increaseSpeed();
+        }
     }
 
     function gameOver() {
         speed = 0;
+        newSpeed = 0;
         changeImageColors();
         gameOverTextBlack.setDepth(1);
         gameOverTextRed.setDepth(1);
@@ -189,6 +196,7 @@
                 addSpeed(part);
             }
         });
+        setSpeed();
     }
 
     function turnHead(part) {
@@ -196,10 +204,8 @@
         let alignY = (part.body.y + 16) % 32;
 
         if (targetDirection !== -1 && targetDirection !== part.direction) {
-            if (speed === 1) {
-                if (alignX === 0 && alignY === 0 && speed === 1) {
-                    makeTurn(part);
-                }
+            if (alignX === 0 && alignY === 0) {
+                makeTurn(part);
             } else {
                 if (targetDirection % 2 !== 0 && alignX < speed && alignY === 0) {
                     part.body.x -= alignX;
@@ -232,21 +238,12 @@
         } else if (distance > 32) {
             part.frozen = false;
         }
+
         if (part.direction % 2 === 0) {
             part.body.x = Math.round(part.body.x / 16) * 16;
-        }
-        if (part.direction % 2 !== 0) {
+        } else {
             part.body.y = Math.round(part.body.y / 16) * 16;
         }
-        alignBody(part, prevPart);
-    }
-
-    function alignBody(part, prevPart) {
-        let distanceX = Math.abs(part.body.x - prevPart.body.x);
-        let distanceY = Math.abs(part.body.y - prevPart.body.y);
-
-        console.log(`part x: ${part.body.x}, prevPart x: ${prevPart.body.x} distance: ${distanceX}`);
-        console.log(`part y: ${part.body.y}, prevPart y: ${prevPart.body.y} distance: ${distanceY}`);
     }
 
 
@@ -296,14 +293,19 @@
     function addScore() {
         score += 10;
         scoreText.setText(`Score: ${score}`);
-        increaseSpeed();
     }
 
     function increaseSpeed() {
-        if (score > 10 && speed === 1) {
-            speed += 1;
-        } else if (score > 50 && speed === 2) {
-            speed += 2;
+        if (score > 20 && speed === 2) {
+            newSpeed += 2;
+        } else if (score > 150 && speed === 4) {
+            newSpeed += 4;
+        }
+    }
+
+    function setSpeed() {
+        if (speed !== newSpeed) {
+            speed = newSpeed;
         }
     }
 
@@ -311,3 +313,4 @@
 </body>
 
 </html>
+

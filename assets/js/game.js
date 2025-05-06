@@ -258,3 +258,14 @@ function gameStart(scene) {
         }
     }, 1000); // Run every 1000ms (1 second)
 }
+
+function spawnGreenApple() {
+    if (greenApple === undefined && ! greenAppleIsActive) {
+        if (score >= 500 && (! greenAppleTime || Date.now() - greenAppleTime > 5000)) {
+            let { x, y } = getRandomPositions();
+            greenApple = scene.add.image(x, y, 'green_food');
+            greenApple.setScale(0.45);
+            greenAppleTime = Date.now();
+        }
+    }
+}

@@ -14,6 +14,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "esm": "^3.2.25",
     "phaser": "^3.88.2"
   }
 }

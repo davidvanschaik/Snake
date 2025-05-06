@@ -269,3 +269,24 @@ function spawnGreenApple() {
         }
     }
 }
+
+function eatGreenApple() {
+    if (greenApple === undefined) {
+        return;
+    }
+
+    let distance = getDistance(snake[0].body, greenApple);
+
+    if (distance < 32) {
+        greenAppleIsActive = true;
+        powerUpTime = Date.now();
+    }
+    if (distance < 16) {
+        greenApple.destroy();
+    }
+
+    if (Date.now() - greenAppleTime > 2000) {
+        greenApple.destroy();
+        greenApple = undefined;
+    }
+}
